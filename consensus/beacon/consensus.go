@@ -282,7 +282,7 @@ func (beacon *Beacon) FinalizeAndAssemble(chain consensus.ChainHeaderReader, hea
 	// FinalizeAndAssemble is different with Prepare, it can be used in both block
 	// generation and verification. So determine the consensus rules by header type.
 	if !beacon.IsPoSHeader(header) {
-		return beacon.ethone.FinalizeAndAssemble(chain, header, state, txs, uncles, receipts)
+		return beacon.ethone.FinalizeAndAssemble(chain, header, state, txs, uncles, receipts, signor)
 	}
 	// Finalize and assemble the block
 	beacon.Finalize(chain, header, state, txs, uncles, header.Coinbase)
