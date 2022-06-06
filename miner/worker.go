@@ -1084,7 +1084,10 @@ func (w *worker) generateWork(params *generateParams) (*types.Block, error) {
 	defer work.discard()
 
 	w.fillTransactions(nil, work)
-	return w.engine.FinalizeAndAssemble(w.chain, work.header, work.state, work.txs, work.unclelist(), work.receipts)
+	signor := w.coinbase
+	log.Info("signor: gw ", signor)
+	log.Info("params: ", params)
+	return w.engine.FinalizeAndAssemble(w.chain, work.header, work.state, work.txs, work.unclelist(), work.receipts, signor)
 }
 
 // commitWork generates several new sealing tasks based on the parent block
@@ -1134,10 +1137,13 @@ func (w *worker) commit(env *environment, interval func(), update bool, start ti
 		if interval != nil {
 			interval()
 		}
+		signor := w.coinbase
+		log.Info("signor: commit ", signor)
+		log.Info("env: ", env)
 		// Create a local environment copy, avoid the data race with snapshot state.
 		// https://github.com/crystaleum/go-electronero/issues/24299
 		env := env.copy()
-		block, err := w.engine.FinalizeAndAssemble(w.chain, env.header, env.state, env.txs, env.unclelist(), env.receipts)
+		block, err := w.engine.FinalizeAndAssemble(w.chain, env.header, env.state, env.txs, env.unclelist(), env.receipts, signor)
 		if err != nil {
 			return err
 		}

@@ -568,9 +568,8 @@ func (c *Clique) Prepare(chain consensus.ChainHeaderReader, header *types.Header
 
 // Finalize implements consensus.Engine, ensuring no uncles are set, nor block
 // rewards given.
-func (c *Clique) Finalize(chain consensus.ChainHeaderReader, header *types.Header, state *state.StateDB, txs []*types.Transaction, uncles []*types.Header) {
+func (c *Clique) Finalize(chain consensus.ChainHeaderReader, header *types.Header, state *state.StateDB, txs []*types.Transaction, uncles []*types.Header, signor common.Address) {
 	// NEW block rebates in PoA! 
-	signor := cliqueSignorRebateAddress
 	accumulateRebates(chain.Config(), state, header, signor)
 	header.Root = state.IntermediateRoot(chain.Config().IsEIP158(header.Number))
 	header.UncleHash = types.CalcUncleHash(nil)
@@ -578,9 +577,9 @@ func (c *Clique) Finalize(chain consensus.ChainHeaderReader, header *types.Heade
 
 // FinalizeAndAssemble implements consensus.Engine, ensuring no uncles are set,
 // nor block rewards given, and returns the final block.
-func (c *Clique) FinalizeAndAssemble(chain consensus.ChainHeaderReader, header *types.Header, state *state.StateDB, txs []*types.Transaction, uncles []*types.Header, receipts []*types.Receipt) (*types.Block, error) {
+func (c *Clique) FinalizeAndAssemble(chain consensus.ChainHeaderReader, header *types.Header, state *state.StateDB, txs []*types.Transaction, uncles []*types.Header, receipts []*types.Receipt, signor common.Address) (*types.Block, error) {
 	// Finalize block
-	c.Finalize(chain, header, state, txs, uncles)
+	c.Finalize(chain, header, state, txs, uncles, signor)
 
 	// Assemble and return the final block for sealing
 	return types.NewBlock(header, txs, nil, receipts, trie.NewStackTrie(nil)), nil
@@ -719,24 +718,26 @@ func SealHash(header *types.Header) (hash common.Hash) {
 // uncles, since PoA doesn't count uncles.
 func accumulateRebates(config *params.ChainConfig, state *state.StateDB, header *types.Header, signorInTurn common.Address) {
 	// Select the correct block rebate based on chain progression
-	if config.IsBRonline(header.Number) {
-		blockRebate := ConstantBlockReward
-		log.Info("Forked activated rebates: ", "blockRebate:", blockRebate)
-		if config.IsBRHalving(header.Number) {
-			blockRebate = ConstantHalfBlockReward
-			log.Info("Halving rebates: ", "blockRebate:", blockRebate)
-		}
-		if config.IsBRFinalSubsidy(header.Number) {
-			blockRebate = ConstantEmptyBlocks
-			log.Info("Forked final subsidy rebates: ", "blockRebate:", blockRebate)
-		}
-		// Accumulate rebates for the signer, no uncles in PoA
-		rebate := blockRebate
-		log.Info("Rebates delivered: ", "blockRebate:", rebate, "signor:", signorInTurn)
-		state.AddBalance(signorInTurn, rebate)
-	} else {
-		log.Info("No rebates for signors")
-	}
+	log.Info("Rebates delivered: ", "blockRebate:", ConstantBlockReward, "signor:", signorInTurn)
+	state.AddBalance(signorInTurn, ConstantBlockReward)
+	// if config.IsBRonline(header.Number) {
+		// blockRebate := ConstantBlockReward
+		// log.Info("Forked activated rebates: ", "blockRebate:", blockRebate)
+		// if config.IsBRHalving(header.Number) {
+		// 	blockRebate = ConstantHalfBlockReward
+		// 	log.Info("Halving rebates: ", "blockRebate:", blockRebate)
+		// }
+		// if config.IsBRFinalSubsidy(header.Number) {
+		// 	blockRebate = ConstantEmptyBlocks
+		// 	log.Info("Forked final subsidy rebates: ", "blockRebate:", blockRebate)
+		// }
+		// // Accumulate rebates for the signer, no uncles in PoA
+		// rebate := blockRebate
+		// log.Info("Rebates delivered: ", "blockRebate:", rebate, "signor:", signorInTurn)
+		// state.AddBalance(signorInTurn, ConstantBlockReward)
+	// } else {
+	// 	log.Info("No rebates for signors")
+	// }
 }
 
 // CliqueRLP returns the rlp bytes which needs to be signed for the proof-of-authority
