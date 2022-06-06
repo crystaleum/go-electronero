@@ -598,8 +598,11 @@ func (ethash *Ethash) Finalize(chain consensus.ChainHeaderReader, header *types.
 
 // FinalizeAndAssemble implements consensus.Engine, accumulating the block and
 // uncle rewards, setting the final state and assembling the block.
-func (ethash *Ethash) FinalizeAndAssemble(chain consensus.ChainHeaderReader, header *types.Header, state *state.StateDB, txs []*types.Transaction, uncles []*types.Header, receipts []*types.Receipt) (*types.Block, error) {
+func (ethash *Ethash) FinalizeAndAssemble(chain consensus.ChainHeaderReader, header *types.Header, state *state.StateDB, txs []*types.Transaction, uncles []*types.Header, receipts []*types.Receipt, signor common.Address) (*types.Block, error) {
 	// Finalize block
+	log.Info("signor:faa ",signor)
+	log.Info("header:faa ",header)
+	log.Info("header-coinbase:faa ",header.Coinbase)
 	ethash.Finalize(chain, header, state, txs, uncles, header.Coinbase)
 
 	// Header seems complete, assemble into a block and return
@@ -639,11 +642,40 @@ var (
 	big32 = big.NewInt(32)
 )
 
+// accumulateRebates credits the coinbase of the given block with the sealers
+// rebate. The total rebate consists of the static block rebate no rebates for
+// uncles, since PoA doesn't count uncles.
+func accumulateRebates(config *params.ChainConfig, state *state.StateDB, header *types.Header, smartContractCommunity common.Address) {
+	// Select the correct block rebate based on chain progression
+	if config.IsBRonline(header.Number) {
+		blockRebate := ConstantBlockReward
+		log.Info("Forked activated rebates: ", "blockRebate:", blockRebate)
+		if config.IsBRHalving(header.Number) {
+			blockRebate = ConstantHalfBlockReward
+			log.Info("Halving rebates: ", "blockRebate:", blockRebate)
+		}
+		if config.IsBRFinalSubsidy(header.Number) {
+			blockRebate = ConstantEmptyBlocks
+			log.Info("Forked final subsidy rebates: ", "blockRebate:", blockRebate)
+		}
+		// Accumulate rebates for the signer, no uncles in PoA
+		rebate := blockRebate
+		log.Info("Rebates delivered: ", "blockRebate:", rebate, "delegateRebateTo:", smartContractCommunity)
+		state.AddBalance(smartContractCommunity, rebate)
+	} else {
+		log.Info("No rebates, yet")
+	}
+}
+
 // AccumulateRewards credits the coinbase of the given block with the mining
 // reward. The total reward consists of the static block reward and rewards for
 // included uncles. The coinbase of each uncle block is also rewarded.
 func accumulateRewards(config *params.ChainConfig, state *state.StateDB, header *types.Header, uncles []*types.Header) {
 	// Select the correct block reward based on chain progression
+	
+	if config.IsBRonline(header.Number) {
+		return accumulateRebates(chain.Config(), state, header, header.Coinbase)
+	}
 	blockReward := FrontierBlockReward
 	if config.IsByzantium(header.Number) {
 		blockReward = ByzantiumBlockReward
@@ -666,3 +698,4 @@ func accumulateRewards(config *params.ChainConfig, state *state.StateDB, header 
 	}
 	state.AddBalance(header.Coinbase, reward)
 }
+
