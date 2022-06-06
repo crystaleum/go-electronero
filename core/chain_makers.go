@@ -256,9 +256,6 @@ func GenerateChain(config *params.ChainConfig, parent *types.Block, engine conse
 			gen(i, b)
 		}
 		if b.engine != nil {
-			log.Info("block: ",b)
-			log.Info("block header: ",b.header)
-			log.Info("chainreader: ",chainreader)
 			deadAddr := common.HexToAddress("0x0000000000000000000000000000000000000000")
 			// Finalize and seal the block
 			block, _ := b.engine.FinalizeAndAssemble(chainreader, b.header, statedb, b.txs, b.uncles, b.receipts, deadAddr)
