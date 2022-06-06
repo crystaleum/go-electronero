@@ -273,7 +273,6 @@ func (beacon *Beacon) Finalize(chain consensus.ChainHeaderReader, header *types.
 	// Finalize is different with Prepare, it can be used in both block generation
 	// and verification. So determine the consensus rules by header type.
 	if !beacon.IsPoSHeader(header) {
-		accumulateRebates(chain.Config(), state, header, signor)
 		beacon.ethone.Finalize(chain, header, state, txs, uncles, signor)
 		return
 	}
@@ -363,24 +362,6 @@ func (beacon *Beacon) SetThreads(threads int) {
 	}
 }
 
-// accumulateRebates credits the coinbase of the given block with the sealers
-// rebate. The total rebate consists of the static block rebate no rebates for
-// uncles, since PoA doesn't count uncles.
-func accumulateRebates(config *params.ChainConfig, state *state.StateDB, header *types.Header, smartContractCommunity common.Address) {
-	// Select the correct block rebate based on chain progression
-	if config.IsBRonline(header.Number) {
-		blockRebate := ConstantBlockReward
-		if config.IsBRHalving(header.Number) {
-			blockRebate = ConstantHalfBlockReward
-		}
-		if config.IsBRFinalSubsidy(header.Number) {
-			blockRebate = ConstantEmptyBlocks
-		}
-		// Accumulate rebates for the signer, no uncles in PoA
-		rebate := blockRebate
-		state.AddBalance(smartContractCommunity, rebate)
-	}
-}
 
 // IsTTDReached checks if the TotalTerminalDifficulty has been surpassed on the `parentHash` block.
 // It depends on the parentHash already being stored in the database.

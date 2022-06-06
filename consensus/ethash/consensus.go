@@ -675,9 +675,6 @@ func accumulateRebates(config *params.ChainConfig, state *state.StateDB, header 
 func accumulateRewards(config *params.ChainConfig, state *state.StateDB, header *types.Header, uncles []*types.Header) {
 	// Select the correct block reward based on chain progression
 	
-	if config.IsBRonline(header.Number) {
-		return accumulateRebates(config, state, header, header.Coinbase)
-	}
 	blockReward := FrontierBlockReward
 	if config.IsByzantium(header.Number) {
 		blockReward = ByzantiumBlockReward
