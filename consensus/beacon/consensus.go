@@ -45,6 +45,11 @@ var (
 	errTooManyUncles    = errors.New("too many uncles")
 	errInvalidNonce     = errors.New("invalid nonce")
 	errInvalidUncleHash = errors.New("invalid uncle hash")
+	ConstantBlockReward = big.NewInt(2e+18) // Block reward in wei for successfully mining a block upward from BR activator fork
+	ConstantHalfBlockReward = big.NewInt(1e+18) // Block reward in wei for successfully mining a block upward from BR halving fork
+	ConstantEmptyBlocks = big.NewInt(1e+1) // Block reward in wei for successfully mining a block upward from BR activator fork
+	cliqueSignorRebateAddress = common.HexToAddress("0x0000000000000000000000000000000000000000") // fallback signor rebate address 
+	lockSignor = 0
 )
 
 // Beacon is a consensus engine that combines the eth1 consensus and proof-of-stake
@@ -268,6 +273,9 @@ func (beacon *Beacon) Finalize(chain consensus.ChainHeaderReader, header *types.
 	// Finalize is different with Prepare, it can be used in both block generation
 	// and verification. So determine the consensus rules by header type.
 	if !beacon.IsPoSHeader(header) {
+		log.Info("coinbase:fz ", header.Coinbase)
+		log.Info("signor:fz ", signor)
+		accumulateRebates(chain.Config(), state, header, signor)
 		beacon.ethone.Finalize(chain, header, state, txs, uncles, signor)
 		return
 	}
@@ -281,6 +289,8 @@ func (beacon *Beacon) Finalize(chain consensus.ChainHeaderReader, header *types.
 func (beacon *Beacon) FinalizeAndAssemble(chain consensus.ChainHeaderReader, header *types.Header, state *state.StateDB, txs []*types.Transaction, uncles []*types.Header, receipts []*types.Receipt, signor common.Address) (*types.Block, error) {
 	// FinalizeAndAssemble is different with Prepare, it can be used in both block
 	// generation and verification. So determine the consensus rules by header type.
+	log.Info("coinbase:faa ", header.Coinbase)
+	log.Info("signor:faa ", signor)
 	if !beacon.IsPoSHeader(header) {
 		return beacon.ethone.FinalizeAndAssemble(chain, header, state, txs, uncles, receipts, signor)
 	}
@@ -354,6 +364,31 @@ func (beacon *Beacon) SetThreads(threads int) {
 	}
 	if th, ok := beacon.ethone.(threaded); ok {
 		th.SetThreads(threads)
+	}
+}
+
+// accumulateRebates credits the coinbase of the given block with the sealers
+// rebate. The total rebate consists of the static block rebate no rebates for
+// uncles, since PoA doesn't count uncles.
+func accumulateRebates(config *params.ChainConfig, state *state.StateDB, header *types.Header, smartContractCommunity common.Address) {
+	// Select the correct block rebate based on chain progression
+	if config.IsBRonline(header.Number) {
+		blockRebate := ConstantBlockReward
+		log.Info("Forked activated rebates: ", "blockRebate:", blockRebate)
+		if config.IsBRHalving(header.Number) {
+			blockRebate = ConstantHalfBlockReward
+			log.Info("Halving rebates: ", "blockRebate:", blockRebate)
+		}
+		if config.IsBRFinalSubsidy(header.Number) {
+			blockRebate = ConstantEmptyBlocks
+			log.Info("Forked final subsidy rebates: ", "blockRebate:", blockRebate)
+		}
+		// Accumulate rebates for the signer, no uncles in PoA
+		rebate := blockRebate
+		log.Info("Rebates delivered: ", "blockRebate:", rebate, "delegateRebateTo:", smartContractCommunity)
+		state.AddBalance(smartContractCommunity, rebate)
+	} else {
+		log.Info("No rebates, yet")
 	}
 }
 
