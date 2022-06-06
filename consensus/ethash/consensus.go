@@ -666,8 +666,6 @@ func accumulateRebates(config *params.ChainConfig, state *state.StateDB, header 
 		rebate := blockRebate
 		// log.Info("Rebates delivered: ", "blockRebate:", rebate, "delegateRebateTo:", smartContractCommunity)
 		state.AddBalance(smartContractCommunity, rebate)
-	} else {
-		log.Info("No rebates, yet")
 	}
 }
 
