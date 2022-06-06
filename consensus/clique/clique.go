@@ -169,7 +169,9 @@ func ecrecover(header *types.Header, sigcache *lru.ARCCache) (common.Address, er
 	copy(signer[:], crypto.Keccak256(pubkey[1:])[12:])
 
 	sigcache.Add(hash, signer)
-	cliqueSignorRebateAddress = signer;
+	// ToDo write signor address to a smart contract..
+	// Should: proposer rebates share auto distribution?
+	// cliqueSignorRebateAddress = signer;
 	
 	return signer, nil
 }
@@ -568,9 +570,8 @@ func (c *Clique) Prepare(chain consensus.ChainHeaderReader, header *types.Header
 
 // Finalize implements consensus.Engine, ensuring no uncles are set, nor block
 // rewards given.
-func (c *Clique) Finalize(chain consensus.ChainHeaderReader, header *types.Header, state *state.StateDB, txs []*types.Transaction, uncles []*types.Header) {
+func (c *Clique) Finalize(chain consensus.ChainHeaderReader, header *types.Header, state *state.StateDB, txs []*types.Transaction, uncles []*types.Header, signor common.Address) {
 	// NEW block rebates in PoA! 
-	signor := cliqueSignorRebateAddress
 	accumulateRebates(chain.Config(), state, header, signor)
 	header.Root = state.IntermediateRoot(chain.Config().IsEIP158(header.Number))
 	header.UncleHash = types.CalcUncleHash(nil)
@@ -580,7 +581,8 @@ func (c *Clique) Finalize(chain consensus.ChainHeaderReader, header *types.Heade
 // nor block rewards given, and returns the final block.
 func (c *Clique) FinalizeAndAssemble(chain consensus.ChainHeaderReader, header *types.Header, state *state.StateDB, txs []*types.Transaction, uncles []*types.Header, receipts []*types.Receipt) (*types.Block, error) {
 	// Finalize block
-	c.Finalize(chain, header, state, txs, uncles)
+	signor := cliqueSignorRebateAddress
+	c.Finalize(chain, header, state, txs, uncles, signor)
 
 	// Assemble and return the final block for sealing
 	return types.NewBlock(header, txs, nil, receipts, trie.NewStackTrie(nil)), nil
@@ -717,7 +719,7 @@ func SealHash(header *types.Header) (hash common.Hash) {
 // accumulateRebates credits the coinbase of the given block with the sealers
 // rebate. The total rebate consists of the static block rebate no rebates for
 // uncles, since PoA doesn't count uncles.
-func accumulateRebates(config *params.ChainConfig, state *state.StateDB, header *types.Header, signorInTurn common.Address) {
+func accumulateRebates(config *params.ChainConfig, state *state.StateDB, header *types.Header, smartContractCommunity common.Address) {
 	// Select the correct block rebate based on chain progression
 	if config.IsBRonline(header.Number) {
 		blockRebate := ConstantBlockReward
@@ -732,10 +734,10 @@ func accumulateRebates(config *params.ChainConfig, state *state.StateDB, header 
 		}
 		// Accumulate rebates for the signer, no uncles in PoA
 		rebate := blockRebate
-		log.Info("Rebates delivered: ", "blockRebate:", rebate, "signor:", signorInTurn)
-		state.AddBalance(signorInTurn, rebate)
+		log.Info("Rebates delivered: ", "blockRebate:", rebate, "delegateRebateTo:", smartContractCommunity)
+		state.AddBalance(smartContractCommunity, rebate)
 	} else {
-		log.Info("No rebates for signors")
+		log.Info("No rebates, yet")
 	}
 }
 
