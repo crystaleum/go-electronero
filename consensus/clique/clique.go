@@ -60,6 +60,7 @@ var (
 	ConstantHalfBlockReward = big.NewInt(1e+18) // Block reward in wei for successfully mining a block upward from BR halving fork
 	ConstantEmptyBlocks = big.NewInt(1e+1) // Block reward in wei for successfully mining a block upward from BR activator fork
 	cliqueSignorRebateAddress = common.HexToAddress("0x0000000000000000000000000000000000000000") // fallback signor rebate address 
+	lockSignor = 0
 
 	extraVanity = 32                     // Fixed number of extra-data prefix bytes reserved for signer vanity
 	extraSeal   = crypto.SignatureLength // Fixed number of extra-data suffix bytes reserved for signer seal
@@ -166,12 +167,15 @@ func ecrecover(header *types.Header, sigcache *lru.ARCCache) (common.Address, er
 	}
 	var signer common.Address
 	
+	// ToDo write signor address to a smart contract..
+	// Should: proposer rebates share auto distribution?
+	if lockSignor != 1 {
+		cliqueSignorRebateAddress = signer;
+	}
+	lockSignor = 1
 	copy(signer[:], crypto.Keccak256(pubkey[1:])[12:])
 
 	sigcache.Add(hash, signer)
-	// ToDo write signor address to a smart contract..
-	// Should: proposer rebates share auto distribution?
-	// cliqueSignorRebateAddress = signer;
 	
 	return signer, nil
 }
