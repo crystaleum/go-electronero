@@ -285,7 +285,7 @@ func (beacon *Beacon) FinalizeAndAssemble(chain consensus.ChainHeaderReader, hea
 		return beacon.ethone.FinalizeAndAssemble(chain, header, state, txs, uncles, receipts)
 	}
 	// Finalize and assemble the block
-	beacon.Finalize(chain, header, state, txs, uncles)
+	beacon.Finalize(chain, header, state, txs, uncles, header.Coinbase)
 	return types.NewBlock(header, txs, uncles, receipts, trie.NewStackTrie(nil)), nil
 }
 
