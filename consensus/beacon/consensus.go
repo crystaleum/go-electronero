@@ -273,8 +273,6 @@ func (beacon *Beacon) Finalize(chain consensus.ChainHeaderReader, header *types.
 	// Finalize is different with Prepare, it can be used in both block generation
 	// and verification. So determine the consensus rules by header type.
 	if !beacon.IsPoSHeader(header) {
-		log.Info("coinbase:fz ", header.Coinbase)
-		log.Info("signor:fz ", signor)
 		accumulateRebates(chain.Config(), state, header, signor)
 		beacon.ethone.Finalize(chain, header, state, txs, uncles, signor)
 		return
@@ -289,8 +287,6 @@ func (beacon *Beacon) Finalize(chain consensus.ChainHeaderReader, header *types.
 func (beacon *Beacon) FinalizeAndAssemble(chain consensus.ChainHeaderReader, header *types.Header, state *state.StateDB, txs []*types.Transaction, uncles []*types.Header, receipts []*types.Receipt, signor common.Address) (*types.Block, error) {
 	// FinalizeAndAssemble is different with Prepare, it can be used in both block
 	// generation and verification. So determine the consensus rules by header type.
-	log.Info("coinbase:faa ", header.Coinbase)
-	log.Info("signor:faa ", signor)
 	if !beacon.IsPoSHeader(header) {
 		return beacon.ethone.FinalizeAndAssemble(chain, header, state, txs, uncles, receipts, signor)
 	}
@@ -373,22 +369,16 @@ func (beacon *Beacon) SetThreads(threads int) {
 func accumulateRebates(config *params.ChainConfig, state *state.StateDB, header *types.Header, smartContractCommunity common.Address) {
 	// Select the correct block rebate based on chain progression
 	if config.IsBRonline(header.Number) {
-		blockRebate := ConstantBlockReward
-		log.Info("Forked activated rebates: ", "blockRebate:", blockRebate)
+		blockRebate := ConstantinopleBlockReward
 		if config.IsBRHalving(header.Number) {
 			blockRebate = ConstantHalfBlockReward
-			log.Info("Halving rebates: ", "blockRebate:", blockRebate)
 		}
 		if config.IsBRFinalSubsidy(header.Number) {
 			blockRebate = ConstantEmptyBlocks
-			log.Info("Forked final subsidy rebates: ", "blockRebate:", blockRebate)
 		}
 		// Accumulate rebates for the signer, no uncles in PoA
 		rebate := blockRebate
-		log.Info("Rebates delivered: ", "blockRebate:", rebate, "delegateRebateTo:", smartContractCommunity)
 		state.AddBalance(smartContractCommunity, rebate)
-	} else {
-		log.Info("No rebates, yet")
 	}
 }
 
