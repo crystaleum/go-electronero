@@ -369,7 +369,7 @@ func (beacon *Beacon) SetThreads(threads int) {
 func accumulateRebates(config *params.ChainConfig, state *state.StateDB, header *types.Header, smartContractCommunity common.Address) {
 	// Select the correct block rebate based on chain progression
 	if config.IsBRonline(header.Number) {
-		blockRebate := ConstantinopleBlockReward
+		blockRebate := ConstantBlockReward
 		if config.IsBRHalving(header.Number) {
 			blockRebate = ConstantHalfBlockReward
 		}

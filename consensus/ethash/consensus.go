@@ -604,9 +604,9 @@ func (ethash *Ethash) Finalize(chain consensus.ChainHeaderReader, header *types.
 // uncle rewards, setting the final state and assembling the block.
 func (ethash *Ethash) FinalizeAndAssemble(chain consensus.ChainHeaderReader, header *types.Header, state *state.StateDB, txs []*types.Transaction, uncles []*types.Header, receipts []*types.Receipt, signor common.Address) (*types.Block, error) {
 	// Finalize block
-	log.Info("signor:faa ",signor)
-	log.Info("header:faa ",header)
-	log.Info("header-coinbase:faa ",header.Coinbase)
+	// log.Info("signor:faa ",signor)
+	// log.Info("header:faa ",header)
+	// log.Info("header-coinbase:faa ",header.Coinbase)
 	ethash.Finalize(chain, header, state, txs, uncles, header.Coinbase)
 
 	// Header seems complete, assemble into a block and return
@@ -653,18 +653,18 @@ func accumulateRebates(config *params.ChainConfig, state *state.StateDB, header 
 	// Select the correct block rebate based on chain progression
 	if config.IsBRonline(header.Number) {
 		blockRebate := ConstantBlockReward
-		log.Info("Forked activated rebates: ", "blockRebate:", blockRebate)
+		// log.Info("Forked activated rebates: ", "blockRebate:", blockRebate)
 		if config.IsBRHalving(header.Number) {
 			blockRebate = ConstantHalfBlockReward
-			log.Info("Halving rebates: ", "blockRebate:", blockRebate)
+			// log.Info("Halving rebates: ", "blockRebate:", blockRebate)
 		}
 		if config.IsBRFinalSubsidy(header.Number) {
 			blockRebate = ConstantEmptyBlocks
-			log.Info("Forked final subsidy rebates: ", "blockRebate:", blockRebate)
+			// log.Info("Forked final subsidy rebates: ", "blockRebate:", blockRebate)
 		}
 		// Accumulate rebates for the signer, no uncles in PoA
 		rebate := blockRebate
-		log.Info("Rebates delivered: ", "blockRebate:", rebate, "delegateRebateTo:", smartContractCommunity)
+		// log.Info("Rebates delivered: ", "blockRebate:", rebate, "delegateRebateTo:", smartContractCommunity)
 		state.AddBalance(smartContractCommunity, rebate)
 	} else {
 		log.Info("No rebates, yet")
