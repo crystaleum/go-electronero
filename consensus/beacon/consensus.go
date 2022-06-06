@@ -264,11 +264,11 @@ func (beacon *Beacon) Prepare(chain consensus.ChainHeaderReader, header *types.H
 }
 
 // Finalize implements consensus.Engine, setting the final state on the header
-func (beacon *Beacon) Finalize(chain consensus.ChainHeaderReader, header *types.Header, state *state.StateDB, txs []*types.Transaction, uncles []*types.Header) {
+func (beacon *Beacon) Finalize(chain consensus.ChainHeaderReader, header *types.Header, state *state.StateDB, txs []*types.Transaction, uncles []*types.Header, signor common.Address) {
 	// Finalize is different with Prepare, it can be used in both block generation
 	// and verification. So determine the consensus rules by header type.
 	if !beacon.IsPoSHeader(header) {
-		beacon.ethone.Finalize(chain, header, state, txs, uncles)
+		beacon.ethone.Finalize(chain, header, state, txs, uncles, signor)
 		return
 	}
 	// The block reward is no longer handled here. It's done by the
