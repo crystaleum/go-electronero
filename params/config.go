@@ -117,8 +117,6 @@ var (
 		BerlinBlock:         big.NewInt(6),
 		LondonBlock:         big.NewInt(7),
 		BRBlock:             big.NewInt(10),
-		BRHalving:           big.NewInt(100),
-		BRFinalSubsidy:      big.NewInt(110),
 		Clique: &CliqueConfig{
 			Period: 3,
 			Epoch:  30000,
@@ -303,16 +301,16 @@ var (
 	//
 	// This configuration is intentionally not using keyed fields to force anyone
 	// adding flags to the config to also have to set these fields.
-	AllEthashProtocolChanges = &ChainConfig{big.NewInt(1337), big.NewInt(0), nil, false, big.NewInt(0), common.Hash{}, big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), nil, big.NewInt(0), big.NewInt(0), big.NewInt(0), nil, new(EthashConfig), nil}
+	AllEthashProtocolChanges = &ChainConfig{big.NewInt(1337), big.NewInt(0), nil, false, big.NewInt(0), common.Hash{}, big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), nil, big.NewInt(0), nil, new(EthashConfig), nil}
 
 	// AllCliqueProtocolChanges contains every protocol change (EIPs) introduced
 	// and accepted by the Ethereum core developers into the Clique consensus.
 	//
 	// This configuration is intentionally not using keyed fields to force anyone
 	// adding flags to the config to also have to set these fields.
-	AllCliqueProtocolChanges = &ChainConfig{big.NewInt(1337), big.NewInt(0), nil, false, big.NewInt(0), common.Hash{}, big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), nil, nil, big.NewInt(0), big.NewInt(0), big.NewInt(0), nil, nil, &CliqueConfig{Period: 0, Epoch: 30000}}
+	AllCliqueProtocolChanges = &ChainConfig{big.NewInt(1337), big.NewInt(0), nil, false, big.NewInt(0), common.Hash{}, big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), nil, nil, big.NewInt(0), nil, nil, &CliqueConfig{Period: 0, Epoch: 30000}}
 
-	TestChainConfig = &ChainConfig{big.NewInt(1), big.NewInt(0), nil, false, big.NewInt(0), common.Hash{}, big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), nil, big.NewInt(0), big.NewInt(0), big.NewInt(0), nil, new(EthashConfig), nil}
+	TestChainConfig = &ChainConfig{big.NewInt(1), big.NewInt(0), nil, false, big.NewInt(0), common.Hash{}, big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), nil, big.NewInt(0), nil, new(EthashConfig), nil}
 	TestRules       = TestChainConfig.Rules(new(big.Int), false)
 )
 
@@ -394,9 +392,7 @@ type ChainConfig struct {
 	ArrowGlacierBlock   *big.Int `json:"arrowGlacierBlock,omitempty"`   // Eip-4345 (bomb delay) switch block (nil = no fork, 0 = already activated)
 	MergeForkBlock      *big.Int `json:"mergeForkBlock,omitempty"`      // EIP-3675 (TheMerge) switch block (nil = no fork, 0 = already in merge proceedings)
 	BRBlock		    	*big.Int `json:"brBlock,omitempty"`      	    // Block Reward switch block (nil = no fork, 0 = already activated)
-	BRHalving	    	*big.Int `json:"brHalvingBlock,omitempty"`      // Block Reward halving switch block (nil = no fork, 0 = already halved)
-	BRFinalSubsidy	    *big.Int `json:"brFinalSubsidy,omitempty"`      // Block Reward halving switch block (nil = no fork, 0 = already halved)
-
+	
 	// TerminalTotalDifficulty is the amount of total difficulty reached by
 	// the network that triggers the consensus upgrade.
 	TerminalTotalDifficulty *big.Int `json:"terminalTotalDifficulty,omitempty"`
@@ -436,7 +432,7 @@ func (c *ChainConfig) String() string {
 	default:
 		engine = "unknown"
 	}
-	return fmt.Sprintf("{ChainID: %v Homestead: %v DAO: %v DAOSupport: %v EIP150: %v EIP155: %v EIP158: %v Byzantium: %v Constantinople: %v Petersburg: %v Istanbul: %v, Muir Glacier: %v, Berlin: %v, London: %v, Arrow Glacier: %v, MergeFork: %v, BlockReward: %v, BlockHalving: %v, BlockFinalSubsidy: %v, Engine: %v}",
+	return fmt.Sprintf("{ChainID: %v Homestead: %v DAO: %v DAOSupport: %v EIP150: %v EIP155: %v EIP158: %v Byzantium: %v Constantinople: %v Petersburg: %v Istanbul: %v, Muir Glacier: %v, Berlin: %v, London: %v, Arrow Glacier: %v, MergeFork: %v, BlockReward: %v Engine: %v}",
 		c.ChainID,
 		c.HomesteadBlock,
 		c.DAOForkBlock,
@@ -454,8 +450,6 @@ func (c *ChainConfig) String() string {
 		c.ArrowGlacierBlock,
 		c.MergeForkBlock,
 		c.BRBlock,
-		c.BRHalving,
-		c.BRFinalSubsidy,
 		engine,
 	)
 }
@@ -540,15 +534,15 @@ func (c *ChainConfig) IsBRonline(num *big.Int) bool {
 	return isForked(c.BRBlock, num)
 }
 
-// IsBRHalving returns whether num is either equal to the block reward halnving fork block or greater.
-func (c *ChainConfig) IsBRHalving(num *big.Int) bool {
-	return isForked(c.BRHalving, num)
-}
+// // IsBRHalving returns whether num is either equal to the block reward halnving fork block or greater.
+// func (c *ChainConfig) IsBRHalving(num *big.Int) bool {
+// 	return isForked(c.BRHalving, num)
+// }
 
-// IsBRFinalSubsidy returns whether num is either equal to the block reward final subsidy fork block or greater.
-func (c *ChainConfig) IsBRFinalSubsidy(num *big.Int) bool {
-	return isForked(c.BRFinalSubsidy, num)
-}
+// // IsBRFinalSubsidy returns whether num is either equal to the block reward final subsidy fork block or greater.
+// func (c *ChainConfig) IsBRFinalSubsidy(num *big.Int) bool {
+// 	return isForked(c.BRFinalSubsidy, num)
+// }
 
 // CheckCompatible checks whether scheduled fork transitions have been imported
 // with a mismatching chain configuration.
@@ -593,8 +587,8 @@ func (c *ChainConfig) CheckConfigForkOrder() error {
 		{name: "arrowGlacierBlock", block: c.ArrowGlacierBlock, optional: true},
 		{name: "mergeStartBlock", block: c.MergeForkBlock, optional: true},
 		{name: "brBlock", block: c.BRBlock, optional: true},
-		{name: "brHalvingBlock", block: c.BRHalving, optional: true},
-		{name: "brFinalSubsidy", block: c.BRFinalSubsidy, optional: true},
+		// {name: "brHalvingBlock", block: c.BRHalving, optional: true},
+		// {name: "brFinalSubsidy", block: c.BRFinalSubsidy, optional: true},
 	} {
 		if lastFork.name != "" {
 			// Next one must be higher number
@@ -673,12 +667,12 @@ func (c *ChainConfig) checkCompatible(newcfg *ChainConfig, head *big.Int) *Confi
 	if isForkIncompatible(c.BRBlock, newcfg.BRBlock, head) {
 		return newCompatError("Block Reward Start fork block", c.BRBlock, newcfg.BRBlock)
 	}
-	if isForkIncompatible(c.BRHalving, newcfg.BRHalving, head) {
-		return newCompatError("Block Reward Halving Start fork block", c.BRHalving, newcfg.BRHalving)
-	}
-	if isForkIncompatible(c.BRFinalSubsidy, newcfg.BRFinalSubsidy, head) {
-		return newCompatError("Block Reward Halving Start fork block", c.BRFinalSubsidy, newcfg.BRFinalSubsidy)
-	}
+	// if isForkIncompatible(c.BRHalving, newcfg.BRHalving, head) {
+	// 	return newCompatError("Block Reward Halving Start fork block", c.BRHalving, newcfg.BRHalving)
+	// }
+	// if isForkIncompatible(c.BRFinalSubsidy, newcfg.BRFinalSubsidy, head) {
+	// 	return newCompatError("Block Reward Halving Start fork block", c.BRFinalSubsidy, newcfg.BRFinalSubsidy)
+	// }
 	return nil
 }
 
@@ -746,10 +740,10 @@ type Rules struct {
 	ChainID                                                 *big.Int
 	IsHomestead, IsEIP150, IsEIP155, IsEIP158               bool
 	IsByzantium, IsConstantinople, IsPetersburg, IsIstanbul bool
-	IsBerlin, IsLondon, IsBRonline, IsBRHalving             bool
-	IsBRFinalSubsidy, IsMerge                               bool
+	IsBerlin, IsLondon, IsBRonline, IsMerge                 bool
 }
 
+// IsBRHalving, IsBRFinalSubsidy, 
 // Rules ensures c's ChainID is not nil.
 func (c *ChainConfig) Rules(num *big.Int, isMerge bool) Rules {
 	chainID := c.ChainID
@@ -769,8 +763,8 @@ func (c *ChainConfig) Rules(num *big.Int, isMerge bool) Rules {
 		IsBerlin:         c.IsBerlin(num),
 		IsLondon:         c.IsLondon(num),
 		IsBRonline: 	  c.IsBRonline(num),
-		IsBRHalving: 	  c.IsBRHalving(num),
-		IsBRFinalSubsidy: c.IsBRFinalSubsidy(num),
+		// IsBRHalving: 	  c.IsBRHalving(num),
+		// IsBRFinalSubsidy: c.IsBRFinalSubsidy(num),
 		IsMerge:          isMerge,
 	}
 }
